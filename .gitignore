@@ -1,0 +1,13 @@
+# --- Vendored by west (restore with `west update`) ---
+/zephyr/
+/modules/hal/
+
+# --- Python virtual environment ---
+/.venv/
+
+# --- Build output ---
+/build/
+/app/build/
+
+# --- Junk / scratch ---
+/garbage/
