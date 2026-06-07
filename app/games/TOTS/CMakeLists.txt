@@ -1,3 +1,5 @@
-zephyr_library()
-zephyr_library_sources(tots.c)
-zephyr_library_sources(tots_resource.c)
+target_sources(app PRIVATE
+  tots.c
+  tots_resource.c
+  tots_gl.c
+)

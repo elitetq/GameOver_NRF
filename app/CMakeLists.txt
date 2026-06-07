@@ -8,6 +8,7 @@ project(GameOver)
 zephyr_include_directories(src)
 
 target_sources(app PRIVATE src/main.c)
-target_sources(app PRIVATE src/assets.c)
+target_sources(app PRIVATE src/j_controls.c)
+target_sources(app PRIVATE src/j_assets.c)
 
 add_subdirectory(games)

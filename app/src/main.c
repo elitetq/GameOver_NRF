@@ -13,8 +13,9 @@
 #include <BTN.h>
 #include <LED.h>
 
-#include <assets.h>
+#include <j_assets.h>
 #include <tots.h>
+#include <j_controls.h>
 
 #include <math.h>
 #include <J_GL.h>
@@ -53,13 +54,32 @@ int main(void)
     uint16_t x,y;
     x = y = 0;
 
-    //14 x 20
+    j_color BG_FILL = BLACK;
+
+    j_component* BLACK_FILL = create_component("black_bg_fill",J_FILL,0,0,(void*)&BG_FILL,NULL);
+    draw_component(BLACK_FILL);
+
     tots_init();
     draw_borders(true);
     
     while(1) {
-        poll_touch(&x,&y);
-        printk("%d,%d\n",x,y);
+        swipe_dir SWIPE = get_swipe_touch(100);
+        switch(SWIPE) {
+          case J_SWIPE_DOWN: 
+            printk("Swiped down!\n");
+            break;
+          case J_SWIPE_UP:
+            printk("Swiped up!\n");
+            break;
+          case J_SWIPE_LEFT:
+            printk("Swiped left!\n");
+            break;
+          case J_SWIPE_RIGHT: 
+            printk("Swiped right!\n");
+            break;
+          default:
+            break;
+        }
     }
     return 0;
 }
