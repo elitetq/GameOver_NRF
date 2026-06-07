@@ -6,10 +6,15 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/random/random.h>
 #include <zephyr/drivers/i2c.h>
+#include <inttypes.h>
+#include <stdbool.h>
 
 
 #include <BTN.h>
 #include <LED.h>
+
+#include <assets.h>
+#include <tots.h>
 
 #include <math.h>
 #include <J_GL.h>
@@ -36,8 +41,25 @@ const struct spi_config spi_cfg = {
 
 int main(void)
 {
+    if(0 > BTN_init())
+      return 0;
+    if(0 > LED_init())
+      return 0;
     J_init(dev,dev_i2c,&spi_cfg,&dcx_gpio,bounds);
     J_LCD_init();
+
+
+
+    uint16_t x,y;
+    x = y = 0;
+
+    //14 x 20
+    tots_init();
+    draw_borders(true);
     
+    while(1) {
+        poll_touch(&x,&y);
+        printk("%d,%d\n",x,y);
+    }
     return 0;
 }
