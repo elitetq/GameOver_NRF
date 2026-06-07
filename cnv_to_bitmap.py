@@ -53,7 +53,7 @@ if __name__ == '__main__':
         print(string_status,end='\n')
     if(k % 8 != 0):
         byte_str = "".join(byte_dat)
-        f.write(f',0x{int(byte_str,2):02X}')
+        f.write(f'0x{int(byte_str,2):02X}')
     f.write('};')
     
     f.close()

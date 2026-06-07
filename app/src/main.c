@@ -61,6 +61,8 @@ int main(void)
 
     tots_init();
     draw_borders(true);
+    draw_level(tots_level_1);
+    draw_guy(5,5);
     
     while(1) {
         swipe_dir SWIPE = get_swipe_touch(100);
@@ -78,6 +80,7 @@ int main(void)
             printk("Swiped right!\n");
             break;
           default:
+            printk("NONE\n");
             break;
         }
     }
