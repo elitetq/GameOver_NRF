@@ -10,8 +10,10 @@
 
 #define GRID_SIZE 28
 
-extern j_decal_data border_decal, player_decal, empty_decal;
-extern j_component *border_left, *border_right, *border_top, *border_bottom, *brick_comp, *black_square;
+#define PLAYER_COLOR TERRACOTTA
+
+extern j_decal_data border_decal, player_decal, empty_decal, brick_decal, white_decal;
+extern j_component *border_left, *border_right, *border_top, *border_bottom, *brick_comp, *black_square, *white_square;
 
 extern j_component *char_sprite;
 
@@ -24,6 +26,7 @@ extern bool init_game;
 #define GUI_TAG 400
 #define PLAYER_TAG 450
 #define BRICK_TAG 500
+#define ENEMY_TAG 550
 
 
 int init_graphics();

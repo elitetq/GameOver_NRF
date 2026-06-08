@@ -20,6 +20,10 @@ extern const uint8_t Guy_0[];
 extern const uint8_t Guy_90[];
 extern const uint8_t Guy_180[];
 extern const uint8_t Guy_270[];
+extern const uint8_t Guy_Dash_0[];
+extern const uint8_t Guy_Dash_90[];
+extern const uint8_t Guy_Dash_180[];
+extern const uint8_t Guy_Dash_270[];
 
 extern const uint8_t tots_level_1[];
 extern const uint8_t brick_texture[];

@@ -60,29 +60,10 @@ int main(void)
     draw_component(BLACK_FILL);
 
     tots_init();
-    draw_borders(true);
-    draw_level(tots_level_1);
-    draw_guy(5,5);
+    // draw_guy(5,5);
     
     while(1) {
-        swipe_dir SWIPE = get_swipe_touch(100);
-        switch(SWIPE) {
-          case J_SWIPE_DOWN: 
-            printk("Swiped down!\n");
-            break;
-          case J_SWIPE_UP:
-            printk("Swiped up!\n");
-            break;
-          case J_SWIPE_LEFT:
-            printk("Swiped left!\n");
-            break;
-          case J_SWIPE_RIGHT: 
-            printk("Swiped right!\n");
-            break;
-          default:
-            printk("NONE\n");
-            break;
-        }
+      game_loop();
     }
     return 0;
 }
