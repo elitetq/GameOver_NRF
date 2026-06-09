@@ -24,6 +24,14 @@ extern const uint8_t Guy_Dash_0[];
 extern const uint8_t Guy_Dash_90[];
 extern const uint8_t Guy_Dash_180[];
 extern const uint8_t Guy_Dash_270[];
+extern const uint8_t Arrow_0[];
+extern const uint8_t Arrow_90[];
+extern const uint8_t Arrow_180[];
+extern const uint8_t Arrow_270[];
+extern const uint8_t Dispenser_0[];
+extern const uint8_t Dispenser_90[];
+extern const uint8_t Dispenser_180[];
+extern const uint8_t Dispenser_270[];
 
 extern const uint8_t tots_level_1[];
 extern const uint8_t brick_texture[];

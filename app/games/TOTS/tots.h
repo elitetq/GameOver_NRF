@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <inttypes.h>
 #include <tots_gl.h>
+#include <j_controls.h>
 
 extern const uint8_t tots_level_1[];
 
@@ -13,10 +14,19 @@ typedef enum {
     TOTS_PROJECTILE = (uint8_t)1
 } tots_entity_type;
 
+
 typedef enum {
     ANIM_NONE = (uint8_t)0,
     ANIM_LERP = (uint8_t)1
 } tots_anim_type;
+
+typedef struct {
+    bool dead_flag;
+    const uint8_t* dir_tex[4];       // directional sprites {0 deg, 90 deg, 180 deg, 270 deg}
+    const uint8_t* secondary_dir_tex[4];  // dash sprites        {0 deg, 90 deg, 180 deg, 270 deg}
+    swipe_dir facing;                // direction currently faced (remembered across frames)
+} entity_data;
+
 
 
 typedef struct {
@@ -27,7 +37,7 @@ typedef struct {
 
     // uint16_t anim_timer;
     // uint8_t anim_value;
-    void* entity_data;
+    entity_data data;
     tots_entity_type type;
     j_component* sprite;
     // tots_anim_type anim_type;
@@ -36,7 +46,7 @@ typedef struct {
 
 void tots_init();
 
-tots_entity* add_entity(tots_entity_type type, void* data, uint16_t tag, int x, int y);
+// tots_entity* add_entity(tots_entity_type type, void* data, uint16_t tag, int x, int y);
 void draw_entities();
 int remove_entities(uint8_t tag);
 

@@ -7,6 +7,8 @@
 
 uint32_t last_frame, now_frame, fps;
 
+#define DEFAULT_DATA (entity_data){.dead_flag = 0}
+
 #define MAX_ENTITIES 25
 
 static uint32_t game_tick = 0;
@@ -38,6 +40,7 @@ static bool trail_end_pulse = 0;
 
 //14 x 20
 
+tots_entity* add_entity(tots_entity_type type, uint16_t tag, int x, int y);
 
 void tots_init() {
     init_graphics();
@@ -46,8 +49,8 @@ void tots_init() {
     now_frame = k_uptime_get_32();
     cur_level = tots_level_1;
     draw_level(cur_level);
-    tots_entity *plr = add_entity(TOTS_PLAYER,NULL,PLAYER_TAG,1,1);
-    add_entity(TOTS_PROJECTILE,NULL,ENEMY_TAG,6,5);
+    tots_entity *plr = add_entity(TOTS_PLAYER,PLAYER_TAG,1,1);
+    add_entity(TOTS_PROJECTILE,ENEMY_TAG,6,5);
 
     if(plr != NULL) {
         player_entity = plr;
@@ -121,16 +124,26 @@ int tots_remove_entity(uint8_t index) {
     return 0;
 }
 
-tots_entity* add_entity(tots_entity_type type, void* data, uint16_t tag, int x, int y) {
+tots_entity* add_entity(tots_entity_type type, uint16_t tag, int x, int y) {
     if(entity_array_index == MAX_ENTITIES || x < 1 || x > MAZE_X_LEN || y < 1 || y > MAZE_Y_LEN) {
         printk("add_entity(): Coordinates out of range or max entity count reached...\n");
         return NULL;
     }
 
+    entity_data data;
+
     j_component* comp;
     switch(type) {
         case TOTS_PLAYER:
             comp = create_component_t(PLAYER_TAG,"entity",J_DECAL,22 + 28*(x-1),20+ 28*(y-1),Guy_0,&player_decal);
+            entity_data temp = {
+                .dead_flag = 0,
+                .dir_tex = {Guy_0,Guy_90,Guy_180,Guy_270},
+                .secondary_dir_tex = {Guy_Dash_0, Guy_Dash_90, Guy_Dash_180, Guy_Dash_270},
+                .facing = J_SWIPE_RIGHT
+            };
+            data = temp;
+
             break;
         default:
             printk("add_entity(): No valid type given...\n");
@@ -151,7 +164,7 @@ tots_entity* add_entity(tots_entity_type type, void* data, uint16_t tag, int x, 
         .ticks_per_move = 2,
         .tag = tag,
         .sprite = comp,
-        .entity_data = data
+        .data = data
     };
     tots_entity_array[entity_array_index++] = entity;
     return &tots_entity_array[entity_array_index - 1];
@@ -266,34 +279,22 @@ int find_next_cell_move(swipe_dir dir, uint8_t* level_dat, int xo, int yo, int *
     return 0;
 }
 
+// Picks the directional sprite that matches a swipe direction.
+// dir_tex is ordered {0 deg, 90 deg, 180 deg, 270 deg}.
+// Returns NULL when the swipe has no matching direction.
+const uint8_t* get_dir_sprite(const uint8_t* dir_tex[4], swipe_dir dir) {
+    switch(dir) {
+        case J_SWIPE_RIGHT: return dir_tex[0]; // 0 deg
+        case J_SWIPE_DOWN:  return dir_tex[1]; // 90 deg
+        case J_SWIPE_LEFT:  return dir_tex[2]; // 180 deg
+        case J_SWIPE_UP:    return dir_tex[3]; // 270 deg
+        default:            return NULL;
+    }
+}
+
 int update_game() {
     game_tick++;
-
     swipe_dir SWIPE = get_swipe_touch_async();
-    static uint8_t* player_dir_tex = Guy_0;
-    static uint8_t* player_dir_tex_dash = Guy_Dash_0;
-    if(player_entity->move_x == player_entity->x && player_entity->move_y == player_entity->y) {
-        switch(SWIPE) {
-            case J_SWIPE_RIGHT:
-                player_dir_tex = Guy_0;
-                player_dir_tex_dash = Guy_Dash_0;
-                break;
-            case J_SWIPE_LEFT:
-                player_dir_tex = Guy_180;
-                player_dir_tex_dash = Guy_Dash_180;
-                break;
-            case J_SWIPE_UP:
-                player_dir_tex = Guy_270;
-                player_dir_tex_dash = Guy_Dash_270;
-                break;
-            case J_SWIPE_DOWN:
-                player_dir_tex = Guy_90;
-                player_dir_tex_dash = Guy_Dash_90;
-                break;
-        }
-    }
-    // print_direction(SWIPE);
-
 
     /**************************************************************
                             ENTITY LOGIC
@@ -302,7 +303,7 @@ int update_game() {
         tots_entity *cur_entity = &tots_entity_array[i];
         if(cur_entity == NULL || cur_entity->sprite == NULL) continue;
         // Stops hanging prev_y/prev_x 
-        if((cur_entity->x == cur_entity->move_x) || (cur_entity->y == cur_entity->move_y)) {
+        if((cur_entity->x == cur_entity->move_x) && (cur_entity->y == cur_entity->move_y)) {
             cur_entity->prev_x = cur_entity->x;
             cur_entity->prev_y = cur_entity->y;
         }
@@ -311,16 +312,17 @@ int update_game() {
             case TOTS_PLAYER:
                 // Change direction sprite for main player. Do not change while dashing
 
-                cur_entity->sprite->dat = trail_index ? player_dir_tex_dash : player_dir_tex;
                 if(trail_end_pulse) {
                     player_entity->dirty = 1;
                     trail_end_pulse = 0;
                 }
                 if((cur_entity->move_x == cur_entity->x) && (cur_entity->move_y == cur_entity->y)) {
+                    if(SWIPE) cur_entity->data.facing = SWIPE;
                     int goto_x, goto_y;
                     find_next_cell_move(SWIPE,cur_level,cur_entity->x,cur_entity->y,&goto_x,&goto_y);
                     cur_entity->move_x = goto_x; cur_entity->move_y = goto_y;
                 }
+                cur_entity->sprite->dat = trail_index ? get_dir_sprite(cur_entity->data.secondary_dir_tex,cur_entity->data.facing) : get_dir_sprite(player_entity->data.dir_tex,cur_entity->data.facing);
 
                 if(cur_entity->internal_ticks % cur_entity->ticks_per_move) continue;
 
