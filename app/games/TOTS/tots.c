@@ -9,10 +9,23 @@ uint32_t last_frame, now_frame, fps;
 
 #define MAX_ENTITIES 25
 
+static uint32_t game_tick = 0;
 static int entity_array_index = 0;
 static tots_entity tots_entity_array[MAX_ENTITIES] = {0};
+static tots_entity *player_entity;
 
 static uint8_t* cur_level;
+
+#define TRAIL_TICK_LIFETIME 10
+#define MAX_TRAIL_MEMORY 32
+typedef struct {
+    int x, y;
+    uint32_t tick_created;
+} trail_data;
+
+static trail_data trail_field[MAX_TRAIL_MEMORY];
+static int trail_index = 0;
+static bool trail_end_pulse = 0;
 
 
 #define FRAME_PER_SECOND 30
@@ -33,8 +46,11 @@ void tots_init() {
     now_frame = k_uptime_get_32();
     cur_level = tots_level_1;
     draw_level(cur_level);
-    tots_entity *plr = add_entity(TOTS_PLAYER,PLAYER_TAG,1,1);
+    tots_entity *plr = add_entity(TOTS_PLAYER,NULL,PLAYER_TAG,1,1);
+    add_entity(TOTS_PROJECTILE,NULL,ENEMY_TAG,6,5);
+
     if(plr != NULL) {
+        player_entity = plr;
         plr->move_x = 5;
         plr->move_y = 1;
     }
@@ -87,8 +103,10 @@ int game_loop() {
     now_frame = k_uptime_get_32();
 
     if((now_frame - last_frame) >= FRAME_MS) {
-        printk("FPS: %d\n", fps);
-        fps = (now_frame - last_frame) ? 1000/(now_frame-last_frame) : fps;
+        if(!(game_tick % FRAME_PER_SECOND)) {
+            printk("FPS: %d\n", fps);
+            fps = (now_frame - last_frame) ? 1000/(now_frame-last_frame) : fps;
+        }
         update_game();
         draw_entities();
         last_frame += FRAME_MS;
@@ -97,16 +115,13 @@ int game_loop() {
 }
 
 int tots_remove_entity(uint8_t index) {
-    if(index >= entity_array_index) return 1;
-    int i = index;
-    entity_array_index -= entity_array_index ? 1 : 0; 
-    for(; i < entity_array_index; i++) {
-        tots_entity_array[i] = tots_entity_array[i+1];
-    }
+    if(index >= entity_array_index || entity_array_index == 0) return 1;
+    if(tots_entity_array[index].type == TOTS_PLAYER) player_entity = NULL;
+    tots_entity_array[index] = tots_entity_array[--entity_array_index];
     return 0;
 }
 
-tots_entity* add_entity(tots_entity_type type, uint16_t tag, int x, int y) {
+tots_entity* add_entity(tots_entity_type type, void* data, uint16_t tag, int x, int y) {
     if(entity_array_index == MAX_ENTITIES || x < 1 || x > MAZE_X_LEN || y < 1 || y > MAZE_Y_LEN) {
         printk("add_entity(): Coordinates out of range or max entity count reached...\n");
         return NULL;
@@ -134,27 +149,63 @@ tots_entity* add_entity(tots_entity_type type, uint16_t tag, int x, int y) {
         .x          = x,
         .y          = y,
         .ticks_per_move = 2,
-        .tick_counter = 0,
         .tag = tag,
-        .sprite = comp
+        .sprite = comp,
+        .entity_data = data
     };
     tots_entity_array[entity_array_index++] = entity;
     return &tots_entity_array[entity_array_index - 1];
 }
 
 void draw_entities() {
+
+    for(int i = trail_index-1; i >= 0; i--) {
+        if(game_tick - trail_field[i].tick_created > TRAIL_TICK_LIFETIME) {
+            bool occupied = false;
+            // Check if another more recent trail occupies space
+            for(int j = 0; j < trail_index; j++) { 
+                if(i == j) continue;
+                if(trail_field[j].x == trail_field[i].x && trail_field[j].y == trail_field[i].y) occupied = true;
+            }
+
+            // Remove trail
+            if((player_entity->x != trail_field[i].x || player_entity->y != trail_field[i].y) && !occupied) {
+                black_square->x = 22 + GRID_SIZE * (trail_field[i].x-1);
+                black_square->y = 20 + GRID_SIZE * (trail_field[i].y-1);
+                draw_component(black_square);
+            }
+            trail_field[i] = trail_field[--trail_index]; // Remove
+            if(!trail_index) trail_end_pulse = 1; // update player sprite with no trall if trail_index is 0
+        }
+    }
+
     for(int i = 0; i < entity_array_index; i++) {
         tots_entity *cur_entity = &tots_entity_array[i];
         if(cur_entity->x < 1 || cur_entity->x > MAZE_X_LEN || cur_entity->y < 1 || cur_entity->y > MAZE_Y_LEN) continue;
-        j_component *prev_decal = cur_entity->type == TOTS_PLAYER ? white_square : black_square;
+        bool is_player = cur_entity->type == TOTS_PLAYER;
+        j_component *prev_decal = is_player ? white_square : black_square;
 
         if(cur_entity->dirty) {
             if(cur_entity->sprite != NULL) {
                 draw_component(cur_entity->sprite);
+
                 if((cur_entity->x != cur_entity->prev_x) || (cur_entity->y != cur_entity->prev_y)) {
                     prev_decal->x = 22 + (cur_entity->prev_x-1) * GRID_SIZE;
                     prev_decal->y = 20 + (cur_entity->prev_y-1) * GRID_SIZE;
-                    draw_component(prev_decal);
+                    if(is_player) {
+                        if(((player_entity->prev_x != player_entity->x) || (player_entity->prev_y != player_entity->y)) && trail_index < MAX_TRAIL_MEMORY) {
+                            trail_field[trail_index++] = (trail_data){
+                                .tick_created = game_tick,
+                                .x = cur_entity->prev_x,
+                                .y = cur_entity->prev_y
+                            };
+                            draw_component(prev_decal);
+                        }
+
+                    } else {
+                        draw_component(prev_decal);
+                    }
+                    // Trail effect generator
                 }
             }
             cur_entity->dirty = 0;
@@ -216,47 +267,63 @@ int find_next_cell_move(swipe_dir dir, uint8_t* level_dat, int xo, int yo, int *
 }
 
 int update_game() {
+    game_tick++;
 
     swipe_dir SWIPE = get_swipe_touch_async();
     static uint8_t* player_dir_tex = Guy_0;
     static uint8_t* player_dir_tex_dash = Guy_Dash_0;
-    switch(SWIPE) {
-        case J_SWIPE_RIGHT:
-            player_dir_tex = Guy_0;
-            player_dir_tex_dash = Guy_Dash_0;
-            break;
-        case J_SWIPE_LEFT:
-            player_dir_tex = Guy_180;
-            player_dir_tex_dash = Guy_Dash_180;
-            break;
-        case J_SWIPE_UP:
-            player_dir_tex = Guy_270;
-            player_dir_tex_dash = Guy_Dash_270;
-            break;
-        case J_SWIPE_DOWN:
-            player_dir_tex = Guy_90;
-            player_dir_tex_dash = Guy_Dash_90;
-            break;
+    if(player_entity->move_x == player_entity->x && player_entity->move_y == player_entity->y) {
+        switch(SWIPE) {
+            case J_SWIPE_RIGHT:
+                player_dir_tex = Guy_0;
+                player_dir_tex_dash = Guy_Dash_0;
+                break;
+            case J_SWIPE_LEFT:
+                player_dir_tex = Guy_180;
+                player_dir_tex_dash = Guy_Dash_180;
+                break;
+            case J_SWIPE_UP:
+                player_dir_tex = Guy_270;
+                player_dir_tex_dash = Guy_Dash_270;
+                break;
+            case J_SWIPE_DOWN:
+                player_dir_tex = Guy_90;
+                player_dir_tex_dash = Guy_Dash_90;
+                break;
+        }
     }
     // print_direction(SWIPE);
+
+
+    /**************************************************************
+                            ENTITY LOGIC
+     **************************************************************/
     for(int i = 0; i < entity_array_index; i++) {
         tots_entity *cur_entity = &tots_entity_array[i];
-        cur_entity->tick_counter++;
+        if(cur_entity == NULL || cur_entity->sprite == NULL) continue;
+        // Stops hanging prev_y/prev_x 
+        if((cur_entity->x == cur_entity->move_x) || (cur_entity->y == cur_entity->move_y)) {
+            cur_entity->prev_x = cur_entity->x;
+            cur_entity->prev_y = cur_entity->y;
+        }
+        cur_entity->internal_ticks++;
         switch(cur_entity->type) {
             case TOTS_PLAYER:
                 // Change direction sprite for main player. Do not change while dashing
-                if(cur_entity->sprite == NULL) continue;
-                if(cur_entity->move_x == cur_entity->x && cur_entity->move_y == cur_entity->y) {
-                    cur_entity->sprite->dat = SWIPE ? player_dir_tex_dash : player_dir_tex;
-                } 
 
-                if(cur_entity->move_x == cur_entity->x && cur_entity->move_y == cur_entity->y) {
+                cur_entity->sprite->dat = trail_index ? player_dir_tex_dash : player_dir_tex;
+                if(trail_end_pulse) {
+                    player_entity->dirty = 1;
+                    trail_end_pulse = 0;
+                }
+                if((cur_entity->move_x == cur_entity->x) && (cur_entity->move_y == cur_entity->y)) {
                     int goto_x, goto_y;
                     find_next_cell_move(SWIPE,cur_level,cur_entity->x,cur_entity->y,&goto_x,&goto_y);
                     cur_entity->move_x = goto_x; cur_entity->move_y = goto_y;
                 }
 
-                if(cur_entity->tick_counter % cur_entity->ticks_per_move) continue;
+                if(cur_entity->internal_ticks % cur_entity->ticks_per_move) continue;
+
                 int dx, dy;
                 dx = dy = 0;
                 if(cur_entity->x != cur_entity->move_x)
