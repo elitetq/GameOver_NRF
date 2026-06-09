@@ -126,7 +126,7 @@ int tots_remove_entity(uint8_t index) {
 
 tots_entity* add_entity(tots_entity_type type, uint16_t tag, int x, int y) {
     if(entity_array_index == MAX_ENTITIES || x < 1 || x > MAZE_X_LEN || y < 1 || y > MAZE_Y_LEN) {
-        printk("add_entity(): Coordinates out of range or max entity count reached...\n");
+        J_LOG("add_entity(): Coordinates out of range or max entity count reached...\n");
         return NULL;
     }
 
@@ -172,6 +172,7 @@ tots_entity* add_entity(tots_entity_type type, uint16_t tag, int x, int y) {
 
 void draw_entities() {
 
+    // Drawing player trail
     for(int i = trail_index-1; i >= 0; i--) {
         if(game_tick - trail_field[i].tick_created > TRAIL_TICK_LIFETIME) {
             bool occupied = false;
@@ -192,6 +193,7 @@ void draw_entities() {
         }
     }
 
+    // Drawing entities
     for(int i = 0; i < entity_array_index; i++) {
         tots_entity *cur_entity = &tots_entity_array[i];
         if(cur_entity->x < 1 || cur_entity->x > MAZE_X_LEN || cur_entity->y < 1 || cur_entity->y > MAZE_Y_LEN) continue;
