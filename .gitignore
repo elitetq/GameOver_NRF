@@ -11,3 +11,7 @@
 
 # --- Junk / scratch ---
 /garbage/
+
+# --- Ignore Claude ---
+/.claude/
+CLAUDE.md

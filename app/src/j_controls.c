@@ -1,17 +1,6 @@
 #include <j_controls.h>
 
 
-static uint16_t xs[SWIPE_MAX_SAMPLES], ys[SWIPE_MAX_SAMPLES];
-
-int store_touch(uint16_t* xs, uint16_t* ys) {
-    uint16_t x, y;
-    poll_touch_timeout(&x,&y,1);
-    if(x == 0xFFFF) return 1;
-    xs[0] = x;
-    ys[0] = y;
-    return 0;
-}
-
 int print_direction(swipe_dir dir) {
     switch(dir) {
         case J_SWIPE_DOWN: 
@@ -32,41 +21,54 @@ int print_direction(swipe_dir dir) {
     return 0;
 }
 
-swipe_dir get_dir(uint16_t* xs, uint16_t* ys, size_t size) {
-    int dx = (int)xs[0] - (int)xs[size-1];
-    int dy = (int)ys[0] - (int)ys[size-1];
+swipe_dir get_swipe_touch_async(void) {
+    static uint16_t sx = 0, sy = 0;
+    static uint8_t cooldown = 0;
+    static bool touching = false;
 
-    if(abs(dx) < SWIPE_MIN_DIST && abs(dy) < SWIPE_MIN_DIST) return J_SWIPE_NONE;
+    uint16_t x, y;
+    int dx, dy;
 
-    if((float)abs(dx) > Y_WEIGHT * (float)abs(dy)) return dx > 0 ? J_SWIPE_LEFT : J_SWIPE_RIGHT;
+    poll_touch_timeout(&x,&y,SWIPE_SAMPLE_MS);
+    if(x == 0xFFFF) {
+        touching = false;
+        return J_SWIPE_NONE;
+    }
 
-    return dy > 0 ? J_SWIPE_UP : J_SWIPE_DOWN;
-}
+    if(cooldown) {
+        cooldown--;
+        return J_SWIPE_NONE;
+    }
 
-swipe_dir get_swipe_touch_async() {
-    static int i = 0;
-    int ret;
+    if(!touching) {
+        touching = true;
+        sx = x;
+        sy = y;
+        return J_SWIPE_NONE; // return since dx and dy will always be 0
+    }
 
-    ret = store_touch(xs + i,ys + i);
-    if(i == SWIPE_MAX_SAMPLES_ASYNC - 1) {
-        i = 0;
-        return get_dir(xs, ys, SWIPE_MAX_SAMPLES_ASYNC);
-    } 
-    else if(ret) i = 0;
-    else i++;
+    dx = (int)x - (int)sx; dy = (int)y - (int)sy;
+    int xabs = abs(dx), yabs = abs(dy);
 
-    return J_SWIPE_NONE;
+    if((xabs < SWIPE_MIN_DIST) && (yabs < SWIPE_MIN_DIST)) return J_SWIPE_NONE;
+
+    cooldown = SWIPE_COOLDOWN;
+    // Continuous dragging
+    sx = x; 
+    sy = y;
+    
+    if(xabs > yabs) return dx > 0 ? J_SWIPE_RIGHT : J_SWIPE_LEFT;
+    return dy > 0 ? J_SWIPE_DOWN : J_SWIPE_UP;
 }
 
 // Records a finger drag and reports its dominant direction.
-// `timeout` is how long (ms) to wait for the swipe to START before giving up.
 swipe_dir get_swipe_touch(int timeout) {
     uint16_t xs[SWIPE_MAX_SAMPLES];
     uint16_t ys[SWIPE_MAX_SAMPLES];
     int count = 0;
     uint16_t x, y;
 
-    // 1) Wait for the swipe to begin, spending the caller's timeout budget here.
+    // polling touch initially
     poll_touch_timeout(&x, &y, timeout);
     if (x == 0xFFFF) {
         return J_SWIPE_NONE; // no touch within the timeout
@@ -75,8 +77,7 @@ swipe_dir get_swipe_touch(int timeout) {
     ys[count] = y;
     count++;
 
-    // 2) Keep sampling while the finger stays down. A timed-out sample (0xFFFF)
-    //    means the finger lifted, so the swipe is over.
+    // sampling while finger is held down
     while (count < SWIPE_MAX_SAMPLES) {
         poll_touch_timeout(&x, &y, SWIPE_SAMPLE_MS);
         if (x == 0xFFFF) {
@@ -87,16 +88,15 @@ swipe_dir get_swipe_touch(int timeout) {
         count++;
     }
 
-    // 3) Net displacement from first to last recorded point.
+    // net displacement
     int dx = (int)xs[count - 1] - (int)xs[0];
     int dy = (int)ys[count - 1] - (int)ys[0];
 
-    // 4) Reject taps / tiny jitter.
+    // reject taps or tiny jitters
     if (abs(dx) < SWIPE_MIN_DIST && abs(dy) < SWIPE_MIN_DIST) {
         return J_SWIPE_NONE;
     }
 
-    // 5) Whichever axis moved more decides the direction.
     if (abs(dx) > abs(dy)) {
         return dx > 0 ? J_SWIPE_RIGHT : J_SWIPE_LEFT;
     }

@@ -2,18 +2,15 @@
 #define TOTS_GL_T
 #include <J_GL.h>
 #include <stdbool.h>
+
 #include <inttypes.h>
-
-
-#define MAZE_X_LEN 7
-#define MAZE_Y_LEN 10
 
 #define GRID_SIZE 28
 
-#define PLAYER_COLOR TERRACOTTA
+#define PLAYER_COLOR YELLOW
 
-extern j_decal_data border_decal, player_decal, empty_decal, brick_decal, white_decal;
-extern j_component *border_left, *border_right, *border_top, *border_bottom, *brick_comp, *black_square, *white_square;
+extern j_decal_data border_decal, player_decal, empty_decal, enemy_decal, brick_decal, white_decal, highlight_decal, player_trail_decal;
+extern j_component *border_left, *border_right, *border_top, *border_bottom, *brick_comp, *black_square, *white_square, *player_square;
 
 extern j_component *char_sprite;
 

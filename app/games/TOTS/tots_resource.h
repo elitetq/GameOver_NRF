@@ -3,6 +3,7 @@
 
 
 #include <inttypes.h>
+#include <tots_levels.h>
 
 /*************************************************
                         UI
