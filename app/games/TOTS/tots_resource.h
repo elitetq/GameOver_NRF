@@ -13,6 +13,8 @@
                   Level Maps
  *********************************************/
 
+extern const uint8_t point_space[];
+extern const uint8_t death_screen[];
 extern const uint8_t tots_border_left[];
 extern const uint8_t tots_border_right[];
 extern const uint8_t tots_border_top[];
@@ -33,6 +35,8 @@ extern const uint8_t Dispenser_0[];
 extern const uint8_t Dispenser_90[];
 extern const uint8_t Dispenser_180[];
 extern const uint8_t Dispenser_270[];
+extern const uint8_t Bat_Flap1[];
+extern const uint8_t Bat_Flap2[];
 
 extern const uint8_t tots_level_1[];
 extern const uint8_t brick_texture[];

@@ -7,12 +7,22 @@
 
 uint32_t last_frame, now_frame, fps;
 
+#if TOTS_DEVELOPER_MODE 
+  #define TOTS_LOG(fmt, ...)  printk("[TOTS] " fmt, ##__VA_ARGS__)
+#else
+  #define TOTS_LOG(fmt, ...)  ((void)0)
+#endif
+
 #define MAX_ENTITIES 25
 
 static uint32_t game_tick = 0;
 static int entity_array_index = 0;
 static tots_entity tots_entity_array[MAX_ENTITIES] = {0};
 static tots_entity *player_entity;
+static bool next_level_flag = 0;
+static bool prev_next_level_flag = 0;
+uint8_t tots_point_field [MAZE_X_LEN][MAZE_Y_LEN];
+uint16_t tots_points;
 
 static uint8_t* cur_level;
 
@@ -38,46 +48,177 @@ static bool trail_end_pulse = 0;
 tots_entity* add_entity(tots_entity_type type, swipe_dir default_facing, uint16_t tag, int x, int y);
 const uint8_t* get_dir_sprite(const uint8_t* dir_tex[4], swipe_dir dir);
 int generate_entities_from_level(const uint8_t* level_dat);
+int tots_remove_entity(uint8_t index, bool free_sprite);
+
+int check_death_condition();
+
+const uint8_t* get_next_level() {
+    if(!level_list_size) return NULL;
+    if(cur_level == NULL) return level_list[0];
+
+    if(level_list[game_tick%level_list_size] == cur_level) 
+        return level_list[(game_tick+1)%level_list_size];
+    return level_list[game_tick%level_list_size];
+}
 
 int tots_is_block_valid(int x, int y) {
     if(x < 1 || x > MAZE_X_LEN || y < 1 || y > MAZE_Y_LEN) return 0;
     return cur_level[(x-1) + MAZE_X_LEN*(y-1)] != 1;
 }
 
-void tots_init() {
-    init_graphics();
-    draw_borders(true);
+int init_level(const uint8_t* level_dat) {
     last_frame = k_uptime_get_32();
     now_frame = k_uptime_get_32();
-    cur_level = tots_level_1;
-    draw_level(cur_level);
+    cur_level = level_dat;
+    draw_level(cur_level,tots_point_field);
     generate_entities_from_level(cur_level);
-    tots_entity *plr = add_entity(TOTS_PLAYER,J_SWIPE_RIGHT,PLAYER_TAG,1,1);
-    add_entity(TOTS_PROJECTILE,J_SWIPE_UP,ENEMY_TAG,6,5);
+    tots_entity *plr = add_entity(TOTS_PLAYER,J_SWIPE_UP,PLAYER_TAG,MAZE_X_LEN/2+1,MAZE_Y_LEN+1);
+    // add_entity(TOTS_PROJECTILE,J_SWIPE_UP,ENEMY_TAG,6,5);
 
     if(plr != NULL) {
         player_entity = plr;
-        plr->move_x = 5;
-        plr->move_y = 1;
+        plr->move_x = MAZE_X_LEN/2+1;
+        plr->move_y = MAZE_Y_LEN;
+        return 0;
     }
+    return 1;
+}
+
+int tots_init() {
+    tots_points = 0;
+    init_graphics();
+    draw_borders(true);
+    return init_level(get_next_level());
+}
+
+int draw_death_screen() {
+    j_animation_data ds_anim = {.bg_col = BLACK, .increment_speed = 20, .percentage = 0, .type = FADE_IN};
+    j_decal_data ds_decal = {.animation_dat = &ds_anim, .bg_col = BLACK, .col = RED};
+    j_component* death_screen_comp = create_component_t(GUI_TAG,"death_screen",J_DECAL,MAZE_X_OFFSET,MAZE_Y_OFFSET,death_screen,&ds_decal);
+    draw_component(death_screen_comp);
+    free_component(death_screen_comp);
+    return 0;
 }
 
 int draw_guy(int x, int y) {
     return draw_sprite(x,y,char_sprite);
 }
 
+int draw_entity(tots_entity *occupant) {
+    if(occupant == NULL || occupant->sprite == NULL) return 1;
 
+    bool has_trail = false;
+    for(int i = 0; i < trail_index; i++) {
+        if(trail_field[i].x == occupant->x && trail_field[i].y == occupant->y) { has_trail = true; break; }
+    }
+
+    if(has_trail) {
+        j_decal_data *dd = (j_decal_data*)occupant->sprite->dat2;
+        j_color saved_bg = dd->bg_col;
+        dd->bg_col = PLAYER_COLOR;
+        draw_component(occupant->sprite);
+        dd->bg_col = saved_bg; // shared global decal — must restore for other entities
+    } else {
+        draw_component(occupant->sprite);
+    }
+    return 0;
+}
+
+int redraw_cell(int x, int y) {
+    int px = MAZE_X_OFFSET + GRID_SIZE * (x-1);
+    int py = MAZE_Y_OFFSET + GRID_SIZE * (y-1);
+
+    // Is a live trail sitting on this cell?
+    bool has_trail = false;
+    for(int i = 0; i < trail_index; i++) {
+        if(trail_field[i].x == x && trail_field[i].y == y) { has_trail = true; break; }
+    }
+
+    // Is an entity sitting on this cell? Lowest index wins (drawn on top, matching draw_entities).
+    tots_entity *occupant = NULL;
+    for(int i = 0; i < entity_array_index; i++) {
+        if(tots_entity_array[i].x == x && tots_entity_array[i].y == y) { occupant = &tots_entity_array[i]; break; }
+    }
+
+    // Entity present: redraw it. If a trail is also here, fill its decal bg with the trail
+    // color so the sprite reads as sitting on top of the trail.
+    if(occupant != NULL && occupant->sprite != NULL) {
+        occupant->sprite->x = px;
+        occupant->sprite->y = py;
+        if(has_trail) {
+            j_decal_data *dd = (j_decal_data*)occupant->sprite->dat2;
+            j_color saved_bg = dd->bg_col;
+            dd->bg_col = PLAYER_COLOR;
+            draw_component(occupant->sprite);
+            dd->bg_col = saved_bg; // shared global decal — must restore for other entities
+        } else {
+            draw_component(occupant->sprite);
+        }
+        return 0;
+    }
+
+    // No entity: trail if present, else bare cell.
+    j_component *empty_square = tots_point_field[x-1][y-1] ? point_square : black_square;
+    j_component *fill = has_trail ? player_square : empty_square;
+    fill->x = px;
+    fill->y = py;
+    draw_component(fill);
+    return 0;
+}
+
+int remove_all_entities() {
+    for(int i = entity_array_index-1; i >= 0; i--) {
+        tots_remove_entity(i,true);
+    }
+}
 
 int game_loop() {
     now_frame = k_uptime_get_32();
+    if(player_entity == NULL) {
+        TOTS_LOG("game_loop(): No valid player_entity pointer...");
+        return 1;
+    }
 
     if((now_frame - last_frame) >= FRAME_MS) {
         if(!(game_tick % FRAME_PER_SECOND)) {
-            J_LOG("[TOTS] FPS: %d\n", fps);
-            fps = (now_frame - last_frame) ? 1000/(now_frame-last_frame) : fps;
+            if(player_entity->data.dead_flag) TOTS_LOG("PLAYER DEAD...");
+            else {
+                TOTS_LOG("FPS: %d\n", fps);
+                TOTS_LOG("Points: %d\n\n", tots_points);
+                fps = (now_frame - last_frame) ? 1000/(now_frame-last_frame) : fps;
+                tots_draw_points(tots_points);
+            }
         }
-        update_game();
-        draw_entities();
+        if(next_level_flag) { // Death logic
+            trail_index = 0; // Clear trail
+            int res = 1;
+            bool dead_flag = player_entity->data.dead_flag;
+            if(dead_flag) {
+                draw_borders(true);
+                tots_points = 0;
+                res = draw_death_screen();
+            } else { // Level completed
+                prev_next_level_flag = 1;
+                player_entity->move_x = MAZE_X_LEN/2 + 1;
+                player_entity->move_y = 0;
+                if(player_entity->prev_x != MAZE_X_LEN/2 + 1 || player_entity->prev_y != 0) {
+                    update_game();
+                    draw_entities();
+                    return 0;
+                }
+            }
+            black_square->x = MAZE_X_OFFSET + (MAZE_X_LEN/2)*GRID_SIZE;
+            black_square->y = MAZE_Y_OFFSET - GRID_SIZE;
+            k_msleep(200);
+            remove_all_entities();
+            draw_component(black_square);
+            init_level(get_next_level());
+            prev_next_level_flag = 0;
+            next_level_flag = 0;
+        } else {
+            update_game();
+            draw_entities();
+        }
         last_frame += FRAME_MS;
     }
     return 0;
@@ -111,6 +252,9 @@ int generate_entities_from_level(const uint8_t* level_dat) {
             case 5:
                 add_entity(TOTS_DISPENSER,J_SWIPE_UP,ENEMY_TAG,x,y);
                 break;
+            case 7:
+                add_entity(TOTS_BAT,J_SWIPE_RIGHT,ENEMY_TAG,x,y);
+                break;
         }
     }
     return 0;
@@ -118,8 +262,10 @@ int generate_entities_from_level(const uint8_t* level_dat) {
 
 tots_entity* add_entity(tots_entity_type type, swipe_dir default_facing, uint16_t tag, int x, int y) {
     if(entity_array_index == MAX_ENTITIES || x < 1 || x > MAZE_X_LEN || y < 1 || y > MAZE_Y_LEN) {
-        J_LOG("add_entity(): Coordinates out of range or max entity count reached...\n");
-        return NULL;
+        if(x != MAZE_X_LEN/2 + 1 || y != MAZE_Y_LEN+1) { // Check begin condition
+            TOTS_LOG("add_entity(): Coordinates out of range or max entity count reached...\n");
+            return NULL;
+        }
     }
 
     entity_data data;
@@ -144,7 +290,7 @@ tots_entity* add_entity(tots_entity_type type, swipe_dir default_facing, uint16_
         }
         //                              ENTITY: PROJECTILE
         case TOTS_PROJECTILE: {
-            temp_tpm = FRAME_PER_SECOND/2;
+            temp_tpm = FRAME_PER_SECOND/8;
             entity_data temp = {
                 .dead_flag = 0,
                 .despawn_flag = 0,
@@ -172,8 +318,23 @@ tots_entity* add_entity(tots_entity_type type, swipe_dir default_facing, uint16_
             comp = create_component_t(ENEMY_TAG,"dispenser",J_DECAL,MAZE_X_OFFSET + GRID_SIZE*(x-1),MAZE_Y_OFFSET + GRID_SIZE*(y-1),(void*)get_dir_sprite(temp.dir_tex,default_facing),&enemy_decal);
             break;
         }
+        //                              ENTITY: BAT
+        case TOTS_BAT: {
+            temp_tpm = (FRAME_PER_SECOND)/3;
+            entity_data temp = {
+                .dead_flag = 0,
+                .despawn_flag = 0,
+                .despawn_ticks = temp_tpm,
+                .dir_tex = {Bat_Flap1,Bat_Flap2,Bat_Flap1,Bat_Flap2},
+                .secondary_dir_tex = {NULL,NULL,NULL,NULL},
+                .facing = J_SWIPE_RIGHT
+            };
+            data = temp;
+            comp = create_component_t(ENEMY_TAG,"bat",J_DECAL,MAZE_X_OFFSET + GRID_SIZE*(x-1),MAZE_Y_OFFSET + GRID_SIZE*(y-1),(void*)get_dir_sprite(temp.dir_tex,J_SWIPE_RIGHT),&enemy_decal);
+            break;
+        }
         default:
-            J_LOG("[TOTS] add_entity(): No valid type given...\n");
+            TOTS_LOG("add_entity(): No valid type given...\n");
             return NULL;
             break;
     }
@@ -204,51 +365,38 @@ void draw_entities() {
     // Drawing player trail
     for(int i = trail_index-1; i >= 0; i--) {
         if(game_tick - trail_field[i].tick_created > TRAIL_TICK_LIFETIME) {
-            bool occupied = false;
-            // Check if another more recent trail occupies space
-            for(int j = 0; j < trail_index; j++) { 
-                if(i == j) continue;
-                if(trail_field[j].x == trail_field[i].x && trail_field[j].y == trail_field[i].y) occupied = true;
-            }
+            int tx = trail_field[i].x, ty = trail_field[i].y;
+            trail_field[i] = trail_field[--trail_index]; // Remove first so redraw_cell doesn't restore this trail
+            if(!trail_index) trail_end_pulse = 1; // update player sprite with no trail if trail_index is 0
 
-            // Remove trail
-            if(player_entity == NULL) {
-                J_LOG("[TOTS] draw_entities(): Player entity is null.. Cannot remove trails..");
-                break;
-            }
-            if((player_entity->x != trail_field[i].x || player_entity->y != trail_field[i].y) && !occupied) {
-                black_square->x = MAZE_X_OFFSET + GRID_SIZE * (trail_field[i].x-1);
-                black_square->y = MAZE_Y_OFFSET + GRID_SIZE * (trail_field[i].y-1);
-                draw_component(black_square);
-            }
-            trail_field[i] = trail_field[--trail_index]; // Remove
-            if(!trail_index) trail_end_pulse = 1; // update player sprite with no trall if trail_index is 0
+            // Don't erase under the player (redraw_cell can't restore it without entity sifting)
+            if(player_entity == NULL || player_entity->x != tx || player_entity->y != ty)
+                redraw_cell(tx, ty);
         }
     }
 
     // Drawing entities
     for(int i = entity_array_index-1; i >= 0; i--) {
         tots_entity *cur_entity = &tots_entity_array[i];
-        if(cur_entity->x < 1 || cur_entity->x > MAZE_X_LEN || cur_entity->y < 1 || cur_entity->y > MAZE_Y_LEN) continue;
+        if(cur_entity->x < 1 || cur_entity->x > MAZE_X_LEN || (cur_entity->y < 1 && cur_entity->x != MAZE_X_LEN/2+1) || cur_entity->y > MAZE_Y_LEN) continue;
         bool is_player = cur_entity->type == TOTS_PLAYER;
-        j_component *prev_decal = is_player ? player_square : black_square;
 
         if(cur_entity->data.despawn_flag) { // Despawn logic
             if(cur_entity->data.despawn_ticks--) continue;
-            black_square->x = MAZE_X_OFFSET + (cur_entity->prev_x-1) * GRID_SIZE;
-            black_square->y = MAZE_Y_OFFSET + (cur_entity->prev_y-1) * GRID_SIZE;
-            draw_component(black_square);
-            tots_remove_entity(cur_entity->index,true);
+            int px = cur_entity->prev_x, py = cur_entity->prev_y;
+            tots_remove_entity(cur_entity->index,true); // remove first so redraw_cell doesn't find this entity as the occupant
+            redraw_cell(px, py);
             continue;
         }
 
         if(cur_entity->dirty) {
             if(cur_entity->sprite != NULL) {
-                draw_component(cur_entity->sprite);
+                draw_entity(cur_entity);
+                // draw_component(cur_entity->sprite);
 
                 if((cur_entity->x != cur_entity->prev_x) || (cur_entity->y != cur_entity->prev_y)) {
-                    prev_decal->x = MAZE_X_OFFSET + (cur_entity->prev_x-1) * GRID_SIZE;
-                    prev_decal->y = MAZE_Y_OFFSET + (cur_entity->prev_y-1) * GRID_SIZE;
+                    player_square->x = MAZE_X_OFFSET + (cur_entity->prev_x-1) * GRID_SIZE;
+                    player_square->y = MAZE_Y_OFFSET + (cur_entity->prev_y-1) * GRID_SIZE;
                     if(is_player) {
                         if(((player_entity->prev_x != player_entity->x) || (player_entity->prev_y != player_entity->y)) && trail_index < MAX_TRAIL_MEMORY) {
                             trail_field[trail_index++] = (trail_data){
@@ -256,11 +404,11 @@ void draw_entities() {
                                 .x = cur_entity->prev_x,
                                 .y = cur_entity->prev_y
                             };
-                            draw_component(prev_decal);
+                            draw_component(player_square);
                         }
 
                     } else {
-                        draw_component(prev_decal);
+                        redraw_cell(cur_entity->prev_x, cur_entity->prev_y);
                     }
                     // Trail effect generator
                 }
@@ -314,7 +462,8 @@ int find_next_cell_move(swipe_dir dir, uint8_t* level_dat, int xo, int yo, int *
     while(1) {
         nx += dx; ny += dy;
         if(nx > MAZE_X_LEN || nx < 1 || ny > MAZE_Y_LEN || ny < 1) break;
-        if(level_dat[nx-1 + (ny-1)*MAZE_X_LEN]) break;
+        uint8_t item = level_dat[nx-1 + (ny-1)*MAZE_X_LEN];
+        if(item && item != 6) break; // Is item an empty space / point space?
         x = nx; y = ny;
     }
 
@@ -340,6 +489,11 @@ const uint8_t* get_dir_sprite(const uint8_t* dir_tex[4], swipe_dir dir) {
 int update_game() {
     game_tick++;
     swipe_dir SWIPE = get_swipe_touch_async();
+    if(player_entity != NULL && SWIPE == J_SWIPE_UP && player_entity->x == MAZE_X_LEN/2+1 && player_entity->y == 1) {
+        next_level_flag = 1; // Next level, exiting from the top
+        player_entity->data.facing = J_SWIPE_UP;
+        return 0;
+    }
 
     /**************************************************************
                             ENTITY LOGIC
@@ -352,6 +506,7 @@ int update_game() {
         entity_data *entity_dat = &cur_entity->data;
         swipe_dir entity_dir = entity_dat->facing;
         bool is_dead = entity_dat->dead_flag;
+        bool is_player = cur_entity->type == TOTS_PLAYER;
 
         if(cur_entity == NULL || cur_entity->sprite == NULL) continue;
         if(is_stationary) { // Stops hanging prev_y/prev_x 
@@ -378,7 +533,9 @@ int update_game() {
                 }
 
                 // Trail sprite change logic (If trail exists or you are moving)
+                is_stationary = (cur_entity->move_x == cur_entity->x) && (cur_entity->move_y == cur_entity->y);
                 cur_entity->sprite->dat = (trail_index || !is_stationary) ? get_dir_sprite(entity_dat->secondary_dir_tex,entity_dat->facing) : get_dir_sprite(entity_dat->dir_tex,entity_dat->facing);
+
 
                 break;
             }
@@ -450,6 +607,31 @@ int update_game() {
 
         if(dx || dy)
             move_entity(cur_entity,cur_entity->x + dx, cur_entity->y + dy);
+
+        if(is_player) {
+            // check_death_condition();
+            if(cur_entity->x < 1 || cur_entity->x > MAZE_X_LEN || cur_entity->y < 1 || cur_entity->y > MAZE_Y_LEN) continue;
+            if(tots_point_field[cur_entity->x-1][cur_entity->y-1]) {
+                tots_point_field[cur_entity->x-1][cur_entity->y-1] = 0;
+                tots_points++;
+            }
+        }
+    }
+    check_death_condition();
+    return 0;
+}
+
+int check_death_condition() { // Will always enter only if player_entity is valid
+    for(int i = entity_array_index-1; i >= 0; i--) {
+        if(i == player_entity->index) continue;
+        bool player_touched_entity = tots_entity_array[i].x == player_entity->x && tots_entity_array[i].y == player_entity->y;
+        bool player_swiped_entity_x = tots_entity_array[i].prev_x == player_entity->x && tots_entity_array[i].x == player_entity->prev_x && player_entity->y == tots_entity_array[i].y;
+        bool player_swiped_entity_y = tots_entity_array[i].prev_y == player_entity->y && tots_entity_array[i].y == player_entity->prev_y && player_entity->x == tots_entity_array[i].x;
+        if(player_touched_entity || player_swiped_entity_x || player_swiped_entity_y) {
+            player_entity->data.dead_flag = 1;
+            next_level_flag = 1;
+            return 0;
+        }
     }
     return 0;
 }

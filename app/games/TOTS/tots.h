@@ -10,10 +10,13 @@
 // extern const uint8_t tots_level_1[];
 
 
+#define TOTS_DEVELOPER_MODE 1
+
 typedef enum {
     TOTS_PLAYER = (uint8_t)0,
     TOTS_PROJECTILE = (uint8_t)1,
-    TOTS_DISPENSER = (uint8_t)2
+    TOTS_DISPENSER = (uint8_t)2,
+    TOTS_BAT = (uint8_t)3
 } tots_entity_type;
 
 
@@ -24,7 +27,8 @@ typedef enum {
 
 typedef struct {
     bool dead_flag, despawn_flag;
-    uint8_t despawn_ticks;           // ticks to 
+    uint8_t despawn_ticks;           // ticks till despawn once triggered. (For bat, despawn_ticks are used as the wait time at each patrol)
+    uint16_t px1, yx1, px2, yx2;     // Patrol x and y coords. For TOTS_BAT
     const uint8_t* dir_tex[4];       // directional sprites {0 deg, 90 deg, 180 deg, 270 deg}
     const uint8_t* secondary_dir_tex[4];  // dash sprites        {0 deg, 90 deg, 180 deg, 270 deg}
     swipe_dir facing;                // direction currently faced (remembered across frames)
@@ -46,7 +50,7 @@ typedef struct {
     bool dirty;
 } tots_entity;
 
-void tots_init();
+int tots_init();
 
 // tots_entity* add_entity(tots_entity_type type, void* data, uint16_t tag, int x, int y);
 void draw_entities();
@@ -56,7 +60,6 @@ int remove_entities(uint8_t tag, bool free_sprite);
 int draw_guy(int x, int y);
 int move_entity(tots_entity* entity, int x, int y);
 
-int draw_level(uint8_t* level_dat);
 
 int game_loop();
 int update_game();
