@@ -38,7 +38,6 @@ extern const uint8_t Dispenser_270[];
 extern const uint8_t Bat_Flap1[];
 extern const uint8_t Bat_Flap2[];
 
-extern const uint8_t tots_level_1[];
 extern const uint8_t brick_texture[];
 extern const uint8_t no_texture[];
 

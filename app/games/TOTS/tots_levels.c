@@ -9,8 +9,8 @@
 
 
 const uint8_t* tots_level_textures[] = {no_texture,brick_texture,Dispenser_0,Dispenser_90,Dispenser_180,Dispenser_270,point_space};
-const uint8_t* level_list[] = {tots_level_1,tots_level_2,tots_level_3};
-// const uint8_t* level_list[] = {tots_level_3};
+// const char* level_list[] = {tots_level_1,tots_level_2,tots_level_3};
+const char* level_list[] = {tots_level_3};
 const uint8_t level_list_size = sizeof(level_list) / sizeof(level_list[0]);
 
 #define DIC_SIZE sizeof(tots_level_textures)/sizeof(tots_level_textures[0])
@@ -30,7 +30,7 @@ const uint8_t level_list_size = sizeof(level_list) / sizeof(level_list[0]);
     
  ***************************************************/
 
-const uint8_t tots_placeholder[MAZE_X_LEN*MAZE_Y_LEN] = {
+const char tots_placeholder[MAZE_X_LEN*MAZE_Y_LEN] = {
     0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0,
@@ -43,7 +43,7 @@ const uint8_t tots_placeholder[MAZE_X_LEN*MAZE_Y_LEN] = {
     0, 0, 0, 0, 0, 0, 0,
 };
 
-const uint8_t tots_level_1[MAZE_X_LEN*MAZE_Y_LEN] = {
+const char tots_level_1[MAZE_X_LEN*MAZE_Y_LEN] = {
     1, 1, 1, 0, 0, 0, 0,
     1, 1, 1, 1, 1, 1, 0,
     2, 0, 0, 0, 0, 0, 0,
@@ -56,7 +56,7 @@ const uint8_t tots_level_1[MAZE_X_LEN*MAZE_Y_LEN] = {
     6, 6, 6, 0, 0, 1, 6,
 };
 
-const uint8_t tots_level_2[MAZE_X_LEN*MAZE_Y_LEN] = {
+const char tots_level_2[MAZE_X_LEN*MAZE_Y_LEN] = {
     0, 0, 1, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 4, 0,
     0, 1, 1, 1, 1, 1, 1,
@@ -69,10 +69,10 @@ const uint8_t tots_level_2[MAZE_X_LEN*MAZE_Y_LEN] = {
     6, 6, 6, 0, 6, 6, 6,
 };
 
-const uint8_t tots_level_3[MAZE_X_LEN*MAZE_Y_LEN] = {
+const char tots_level_3[MAZE_X_LEN*MAZE_Y_LEN] = {
     1, 1, 1, 0, 0, 0, 0,
-    1, 1, 3, 0, 3, 1, 0,
-    0, 0, 0, 0, 0, 0, 0,
+    1, 1, 0, 0, 0, 1, 0,
+    'b', 0, 0, 0, 0, 0, 0,
     1, 1, 0, 1, 0, 1, 1,
     2, 0, 0, 1, 0, 0, 4,
     6, 0, 1, 0, 1, 0, 6,
@@ -82,7 +82,7 @@ const uint8_t tots_level_3[MAZE_X_LEN*MAZE_Y_LEN] = {
     6, 1, 0, 0, 0, 1, 6,
 };
 
-int draw_get_level_points(const uint8_t* level_dat, uint8_t point_field[MAZE_X_LEN][MAZE_Y_LEN]) {
+int draw_get_level_points(const char* level_dat, uint8_t point_field[MAZE_X_LEN][MAZE_Y_LEN]) {
     memset(point_field,0,MAZE_X_LEN*MAZE_Y_LEN); // initialize with zeroes
     for(int i = 0; i < MAZE_X_LEN*MAZE_Y_LEN; i++) {
         if(level_dat[i] == 6) {
@@ -98,7 +98,7 @@ int draw_get_level_points(const uint8_t* level_dat, uint8_t point_field[MAZE_X_L
 }
 
 
-int draw_level(const uint8_t* level_dat, uint8_t point_field[MAZE_X_LEN][MAZE_Y_LEN]) {
+int draw_level(const char* level_dat, uint8_t point_field[MAZE_X_LEN][MAZE_Y_LEN]) {
     static uint8_t level_dat_comb[LEVEL_BODY + 4]; // in BSS, no heap needed
 
     // 4-byte decal header: [height_hi, height_lo, length_hi, length_lo]

@@ -28,7 +28,7 @@ typedef enum {
 typedef struct {
     bool dead_flag, despawn_flag;
     uint8_t despawn_ticks;           // ticks till despawn once triggered. (For bat, despawn_ticks are used as the wait time at each patrol)
-    uint16_t px1, yx1, px2, yx2;     // Patrol x and y coords. For TOTS_BAT
+    uint16_t px1, py1, px2, py2;     // Patrol x and y coords. For TOTS_BAT
     const uint8_t* dir_tex[4];       // directional sprites {0 deg, 90 deg, 180 deg, 270 deg}
     const uint8_t* secondary_dir_tex[4];  // dash sprites        {0 deg, 90 deg, 180 deg, 270 deg}
     swipe_dir facing;                // direction currently faced (remembered across frames)

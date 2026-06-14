@@ -252,8 +252,17 @@ int generate_entities_from_level(const uint8_t* level_dat) {
             case 5:
                 add_entity(TOTS_DISPENSER,J_SWIPE_UP,ENEMY_TAG,x,y);
                 break;
-            case 7:
+            case 'b':
                 add_entity(TOTS_BAT,J_SWIPE_RIGHT,ENEMY_TAG,x,y);
+                break;
+            case 'd':
+                add_entity(TOTS_BAT,J_SWIPE_LEFT,ENEMY_TAG,x,y);
+                break;
+            case 'n':
+                add_entity(TOTS_BAT,J_SWIPE_UP,ENEMY_TAG,x,y);
+                break;
+            case 'u':
+                add_entity(TOTS_BAT,J_SWIPE_DOWN,ENEMY_TAG,x,y);
                 break;
         }
     }
@@ -321,13 +330,20 @@ tots_entity* add_entity(tots_entity_type type, swipe_dir default_facing, uint16_
         //                              ENTITY: BAT
         case TOTS_BAT: {
             temp_tpm = (FRAME_PER_SECOND)/3;
+            int px2, py2;
+            find_next_cell_move(default_facing,cur_level,x,y,&px2,&py2);
             entity_data temp = {
                 .dead_flag = 0,
                 .despawn_flag = 0,
                 .despawn_ticks = temp_tpm,
                 .dir_tex = {Bat_Flap1,Bat_Flap2,Bat_Flap1,Bat_Flap2},
                 .secondary_dir_tex = {NULL,NULL,NULL,NULL},
-                .facing = J_SWIPE_RIGHT
+                .facing = J_SWIPE_RIGHT,
+                .px1 = x,
+                .py1 = y,
+                .px2 = px2,
+                .py2 = py2
+
             };
             data = temp;
             comp = create_component_t(ENEMY_TAG,"bat",J_DECAL,MAZE_X_OFFSET + GRID_SIZE*(x-1),MAZE_Y_OFFSET + GRID_SIZE*(y-1),(void*)get_dir_sprite(temp.dir_tex,J_SWIPE_RIGHT),&enemy_decal);
@@ -459,11 +475,21 @@ int find_next_cell_move(swipe_dir dir, uint8_t* level_dat, int xo, int yo, int *
     }
 
     int nx = x, ny = y;
+    char exclude_list[] = {6, 'b', 'd', 'u', 'n'}; // You can go through all of these 'blocks'
     while(1) {
         nx += dx; ny += dy;
         if(nx > MAZE_X_LEN || nx < 1 || ny > MAZE_Y_LEN || ny < 1) break;
         uint8_t item = level_dat[nx-1 + (ny-1)*MAZE_X_LEN];
-        if(item && item != 6) break; // Is item an empty space / point space?
+        if(item) {
+            bool break_while = true;
+            for(int i = 0; i < sizeof(exclude_list); i++) {
+                if(item == exclude_list[i]) {
+                    break_while = false;
+                    break;
+                } 
+            }
+            if(break_while) break;
+        }
         x = nx; y = ny;
     }
 
@@ -553,7 +579,7 @@ int update_game() {
             }
             case TOTS_DISPENSER: {
 
-                if(cur_entity->data.dead_flag && cur_entity->internal_ticks - cur_entity->ticks_snapshot > 10) {
+                if(cur_entity->data.dead_flag && cur_entity->internal_ticks - cur_entity->ticks_snapshot > 10) { // Highlight for 0.33 seconds
                     cur_entity->data.dead_flag = 0;
                     cur_entity->sprite->dat2 = (void*)&enemy_decal;
                     cur_entity->dirty = 1;
@@ -588,6 +614,14 @@ int update_game() {
                 cur_entity->ticks_snapshot = cur_entity->internal_ticks;
                 cur_entity->dirty = 1;
                 break;
+            }
+            case TOTS_BAT: {
+                if(is_stationary) { // Swipe cell move logic
+                    if(SWIPE) entity_dat->facing = SWIPE;
+                    int goto_x, goto_y;
+                    find_next_cell_move(SWIPE,cur_level,cur_entity->x,cur_entity->y,&goto_x,&goto_y);
+                    cur_entity->move_x = goto_x; cur_entity->move_y = goto_y;
+                }
             }
         }
 
