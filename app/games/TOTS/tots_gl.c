@@ -52,13 +52,15 @@ int init_graphics() {
 int tots_draw_points(uint16_t points) {
 
     static uint16_t points_memory = 0;
-    // if(points_memory == points) return 1;
+    if(points_memory == points) return 1; // dont redraw if points havent changed since last time
     points_str[3] = '0' + points % 10;
     points_str[2] = '0' + (points / 10) % 10;
     points_str[1] = '0' + (points / 100) % 10;
     points_str[0] = '0' + (points / 1000) % 10;
     draw_component(point_text);
+    points_memory = points;
 
+    return 0;
 }
 
 int draw_borders(bool FILL_MIDDLE) {

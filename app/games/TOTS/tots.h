@@ -32,7 +32,6 @@ typedef struct {
     const uint8_t* dir_tex[4];       // directional sprites {0 deg, 90 deg, 180 deg, 270 deg}
     const uint8_t* secondary_dir_tex[4];  // dash sprites        {0 deg, 90 deg, 180 deg, 270 deg}
     swipe_dir facing;                // direction currently faced (remembered across frames)
-    
 } entity_data;
 
 

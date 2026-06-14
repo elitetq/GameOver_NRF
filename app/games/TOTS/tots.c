@@ -49,6 +49,7 @@ tots_entity* add_entity(tots_entity_type type, swipe_dir default_facing, uint16_
 const uint8_t* get_dir_sprite(const uint8_t* dir_tex[4], swipe_dir dir);
 int generate_entities_from_level(const uint8_t* level_dat);
 int tots_remove_entity(uint8_t index, bool free_sprite);
+int find_next_cell_move(swipe_dir dir, uint8_t* level_dat, int xo, int yo, int *xs, int *ys);
 
 int check_death_condition();
 
@@ -170,6 +171,7 @@ int remove_all_entities() {
     for(int i = entity_array_index-1; i >= 0; i--) {
         tots_remove_entity(i,true);
     }
+    return 0;
 }
 
 int game_loop() {
@@ -270,8 +272,8 @@ int generate_entities_from_level(const uint8_t* level_dat) {
 }
 
 tots_entity* add_entity(tots_entity_type type, swipe_dir default_facing, uint16_t tag, int x, int y) {
-    if(entity_array_index == MAX_ENTITIES || x < 1 || x > MAZE_X_LEN || y < 1 || y > MAZE_Y_LEN) {
-        if(x != MAZE_X_LEN/2 + 1 || y != MAZE_Y_LEN+1) { // Check begin condition
+    if(x < 1 || x > MAZE_X_LEN || y < 1 || y > MAZE_Y_LEN) {
+        if(x != MAZE_X_LEN/2 + 1 || y != MAZE_Y_LEN+1 || entity_array_index == MAX_ENTITIES) { // Check begin condition and entity saturation
             TOTS_LOG("add_entity(): Coordinates out of range or max entity count reached...\n");
             return NULL;
         }
@@ -616,11 +618,23 @@ int update_game() {
                 break;
             }
             case TOTS_BAT: {
-                if(is_stationary) { // Swipe cell move logic
-                    if(SWIPE) entity_dat->facing = SWIPE;
-                    int goto_x, goto_y;
-                    find_next_cell_move(SWIPE,cur_level,cur_entity->x,cur_entity->y,&goto_x,&goto_y);
-                    cur_entity->move_x = goto_x; cur_entity->move_y = goto_y;
+                int cell_odd_even = (cur_entity->x + cur_entity->y) & 0x0001;
+                cur_entity->sprite->dat = cell_odd_even ? (void*)Bat_Flap1 : (void*)Bat_Flap2;
+                if(is_stationary) { 
+                    if(0 == cur_entity->data.dead_flag) {
+                        cur_entity->data.dead_flag = 1;
+                        cur_entity->ticks_snapshot = cur_entity->internal_ticks;
+                    }
+                    if(5 * cur_entity->ticks_per_move <= cur_entity->internal_ticks - cur_entity->ticks_snapshot) {
+                        int px = cur_entity->data.px1,       py = cur_entity->data.py1;
+                        if(px == cur_entity->x && py == cur_entity->y) {
+                            px = cur_entity->data.px2;
+                            py = cur_entity->data.py2;
+                        }
+                        cur_entity->move_x = px; cur_entity->move_y = py;
+                    }
+                } else {
+                    cur_entity->data.dead_flag = 0;
                 }
             }
         }
