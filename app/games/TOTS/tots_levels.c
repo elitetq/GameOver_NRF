@@ -9,8 +9,8 @@
 
 
 const uint8_t* tots_level_textures[] = {no_texture,brick_texture,Dispenser_0,Dispenser_90,Dispenser_180,Dispenser_270,point_space};
-// const char* level_list[] = {tots_level_1,tots_level_2,tots_level_3};
-const char* level_list[] = {tots_level_3};
+const char* level_list[] = {tots_level_1,tots_level_2,tots_level_3,tots_level_4,tots_level_5};
+// const char* level_list[] = {tots_level_5};
 const uint8_t level_list_size = sizeof(level_list) / sizeof(level_list[0]);
 
 #define DIC_SIZE sizeof(tots_level_textures)/sizeof(tots_level_textures[0])
@@ -71,15 +71,41 @@ const char tots_level_2[MAZE_X_LEN*MAZE_Y_LEN] = {
 
 const char tots_level_3[MAZE_X_LEN*MAZE_Y_LEN] = {
     1, 1, 1, 0, 0, 0, 0,
-    1, 1, 0, 0, 0, 1, 0,
-    'b', 0, 0, 0, 0, 0, 0,
-    1, 1, 0, 1, 0, 1, 1,
-    2, 0, 0, 1, 0, 0, 4,
-    6, 0, 1, 0, 1, 0, 6,
-    6, 1, 3, 0, 3, 1, 6,
-    6, 0, 0, 0, 0, 0, 6,
+    1, 1, 1, 6, 1, 1, 0,
+    'b', 6, 6, 6, 6, 6, 0,
+    0, 0, 0, 6, 0, 0, 0,
+    2, 0, 0, 6, 0, 0, 4,
+    6, 0, 1, 6, 1, 0, 6,
+    6, 1, 3, 6, 3, 1, 6,
+    6, 0, 0, 6, 0, 0, 6,
     6, 0, 0, 1, 0, 0, 6,
     6, 1, 0, 0, 0, 1, 6,
+};
+
+const char tots_level_4[MAZE_X_LEN*MAZE_Y_LEN] = {
+    6, 6, 6, 6, 1, 1, 1,
+    6, 1, 1, 1, 1, 1, 1,
+    6, 2, 0, 0, 0, 'u', 1,
+    6, 2, 0, 1, 1, 6, 1,
+    6, 2, 0, 1, 1, 6, 1,
+    6, 1, 0, 1, 1, 6, 1,
+    6, 1, 0, 1, 0, 6, 1,
+    6, 0, 0, 1, 0, 0, 6,
+    6, 1, 1, 1, 1, 1, 6,
+    6, 1, 1, 0, 6, 6, 6,
+};
+
+const char tots_level_5[MAZE_X_LEN*MAZE_Y_LEN] = {
+    6, 6, 1, 6, 1, 6, 6,
+    6, 6, 1, 6, 1, 6, 6,
+    6, 6, 6, 6, 1, 6, 6,
+    6, 1, 1, 6, 3, 1, 6,
+    6, 2, 0, 6, 6, 6, 6,
+    6, 0, 0, 1, 0, 1, 1,
+    6, 1, 1, 0, 0, 1, 0,
+    'b', 0, 0, 0, 0, 0, 'd',
+    1, 'b', 0, 0, 0, 'd', 1,
+    1, 1, 1, 0, 1, 1, 1,
 };
 
 int draw_get_level_points(const char* level_dat, uint8_t point_field[MAZE_X_LEN][MAZE_Y_LEN]) {

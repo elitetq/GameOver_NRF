@@ -618,14 +618,14 @@ int update_game() {
                 break;
             }
             case TOTS_BAT: {
-                int cell_odd_even = (cur_entity->x + cur_entity->y) & 0x0001;
+                int cell_odd_even = (cur_entity->x + cur_entity->y) & 0x0001; // Logic to change bat flap sprite
                 cur_entity->sprite->dat = cell_odd_even ? (void*)Bat_Flap1 : (void*)Bat_Flap2;
                 if(is_stationary) { 
-                    if(0 == cur_entity->data.dead_flag) {
+                    if(0 == cur_entity->data.dead_flag) { // Set rest timer when reaching patrol point
                         cur_entity->data.dead_flag = 1;
                         cur_entity->ticks_snapshot = cur_entity->internal_ticks;
                     }
-                    if(5 * cur_entity->ticks_per_move <= cur_entity->internal_ticks - cur_entity->ticks_snapshot) {
+                    if(5 * cur_entity->ticks_per_move <= cur_entity->internal_ticks - cur_entity->ticks_snapshot) { // If rested, set new move_x/move_Y
                         int px = cur_entity->data.px1,       py = cur_entity->data.py1;
                         if(px == cur_entity->x && py == cur_entity->y) {
                             px = cur_entity->data.px2;
