@@ -1,0 +1,4 @@
+west:
+  command: C:\Users\jonar\GameOver_NRF\.venv\bin\west build -b nrf52840dk/nrf52840
+  topdir: C:/Users/jonar/GameOver_NRF
+  version: 1.5.0

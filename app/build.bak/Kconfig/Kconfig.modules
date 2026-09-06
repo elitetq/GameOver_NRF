@@ -1,0 +1,21 @@
+menu "j_gl (C:/Users/jonar/GameOver_NRF/modules/j_gl)"
+osource "C:/Users/jonar/GameOver_NRF/modules/j_gl/Kconfig"
+config ZEPHYR_J_GL_MODULE
+	bool
+	default y
+endmenu
+menu "cmsis_6 (C:/Users/jonar/GameOver_NRF/modules/hal/cmsis_6)"
+osource "$(ZEPHYR_CMSIS_6_KCONFIG)"
+config ZEPHYR_CMSIS_6_MODULE
+	bool
+	default y
+endmenu
+menu "hal_nordic (C:/Users/jonar/GameOver_NRF/modules/hal/nordic)"
+osource "$(ZEPHYR_HAL_NORDIC_KCONFIG)"
+config ZEPHYR_HAL_NORDIC_MODULE
+	bool
+	default y
+
+config ZEPHYR_HAL_NORDIC_MODULE_BLOBS
+	bool
+endmenu

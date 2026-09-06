@@ -1,0 +1,53 @@
+cmake:
+  application:
+    configuration-dir: 'C:/Users/jonar/GameOver_NRF/app'
+    source-dir: 'C:/Users/jonar/GameOver_NRF/app'
+  board:
+    name: 'nrf52840dk'
+    path:
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/boards/nordic/nrf52840dk'
+    qualifiers: 'nrf52840'
+    revision: ''
+  devicetree:
+    bindings-dirs:
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/dts/bindings'
+    files:
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/boards/nordic/nrf52840dk/nrf52840dk_nrf52840.dts'
+     - 'C:/Users/jonar/GameOver_NRF/app/boards/nrf52840dk_nrf52840.overlay'
+    include-dirs:
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/include'
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/include/zephyr'
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/dts/common'
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/dts/vendor'
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/dts/rx'
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/dts/x86'
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/dts/xtensa'
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/dts/sparc'
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/dts/riscv'
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/dts/posix'
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/dts/arm64'
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/dts/arm'
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/dts/arc'
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/dts'
+    user-files:
+     - 'C:/Users/jonar/GameOver_NRF/app/boards/nrf52840dk_nrf52840.overlay'
+  kconfig:
+    files:
+     - 'C:/Users/jonar/GameOver_NRF/zephyr/boards/nordic/nrf52840dk/nrf52840dk_nrf52840_defconfig'
+     - 'C:/Users/jonar/GameOver_NRF/app/prj.conf'
+    user-files:
+     - 'C:/Users/jonar/GameOver_NRF/app/prj.conf'
+  toolchain:
+    name: 'zephyr'
+    path: 'C:/Users/jonar/zephyr-sdk-0.17.4'
+  vendor-specific:
+    nordic:
+      svdfile: 'C:/Users/jonar/GameOver_NRF/modules/hal/nordic/nrfx/mdk/nrf52840.svd'
+  zephyr:
+    version: '4.2.0'
+    zephyr-base: 'C:/Users/jonar/GameOver_NRF/zephyr'
+version: '0.1.0'
+west:
+  command: 'C:\Users\jonar\GameOver_NRF\.venv\bin\west build -b nrf52840dk/nrf52840'
+  topdir: 'C:/Users/jonar/GameOver_NRF'
+  version: '1.5.0'

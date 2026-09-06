@@ -1,0 +1,19 @@
+# ninja log v7
+357	1205	8024014370983393	zephyr/include/generated/zephyr/version.h	8333eb21f0c1dd1f
+357	1205	8024014370983393	C:/Users/jonar/GameOver_NRF/app/build/zephyr/include/generated/zephyr/version.h	8333eb21f0c1dd1f
+340	6166	8024014420383282	zephyr/misc/generated/syscalls.json	93d1ada862df3481
+340	6166	8024014420383282	zephyr/misc/generated/struct_tags.json	93d1ada862df3481
+340	6166	8024014420383282	C:/Users/jonar/GameOver_NRF/app/build/zephyr/misc/generated/syscalls.json	93d1ada862df3481
+340	6166	8024014420383282	C:/Users/jonar/GameOver_NRF/app/build/zephyr/misc/generated/struct_tags.json	93d1ada862df3481
+6228	6954	8024014428188671	zephyr/include/generated/device-api-sections.ld	afb314af194d462c
+6228	6954	8024014428188671	zephyr/include/generated/device-api-sections.cmake	afb314af194d462c
+6228	6954	8024014428188671	C:/Users/jonar/GameOver_NRF/app/build/zephyr/include/generated/device-api-sections.ld	afb314af194d462c
+6228	6954	8024014428188671	C:/Users/jonar/GameOver_NRF/app/build/zephyr/include/generated/device-api-sections.cmake	afb314af194d462c
+6167	7633	8024014428063409	zephyr/include/generated/zephyr/syscall_dispatch.c	cfc9e67e40d3cfff
+6167	7633	8024014428063409	zephyr/include/generated/zephyr/syscall_exports_llext.c	cfc9e67e40d3cfff
+6167	7633	8024014428063409	zephyr/syscall_weakdefs_llext.c	cfc9e67e40d3cfff
+6167	7633	8024014428063409	zephyr/include/generated/zephyr/syscall_list.h	cfc9e67e40d3cfff
+6167	7633	8024014428063409	C:/Users/jonar/GameOver_NRF/app/build/zephyr/include/generated/zephyr/syscall_dispatch.c	cfc9e67e40d3cfff
+6167	7633	8024014428063409	C:/Users/jonar/GameOver_NRF/app/build/zephyr/include/generated/zephyr/syscall_exports_llext.c	cfc9e67e40d3cfff
+6167	7633	8024014428063409	C:/Users/jonar/GameOver_NRF/app/build/zephyr/syscall_weakdefs_llext.c	cfc9e67e40d3cfff
+6167	7633	8024014428063409	C:/Users/jonar/GameOver_NRF/app/build/zephyr/include/generated/zephyr/syscall_list.h	cfc9e67e40d3cfff

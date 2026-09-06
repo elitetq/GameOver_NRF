@@ -1,0 +1,3 @@
+"j_gl":"C:/Users/jonar/GameOver_NRF/modules/j_gl":"C:/Users/jonar/GameOver_NRF/modules/j_gl"
+"cmsis_6":"C:/Users/jonar/GameOver_NRF/modules/hal/cmsis_6":"${ZEPHYR_CMSIS_6_CMAKE_DIR}"
+"hal_nordic":"C:/Users/jonar/GameOver_NRF/modules/hal/nordic":"${ZEPHYR_HAL_NORDIC_CMAKE_DIR}"
