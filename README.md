@@ -1,6 +1,6 @@
 # Game Over - nRF52840
 
-This project runs a touchscreen game on the nRF52840 development kit using Zephyr and [J Graphics Library](https://github.com/elitetq/J-Graphics-Library). The game is called TOTS. It uses swipe controls to move through a maze, collect points and avoid enemies.
+This project runs a touchscreen game on the nRF52840 development kit using Zephyr and [J Graphics Library](https://github.com/elitetq/J-Graphics-Library), my own personal graphics library reused here. The game is called TOTS. It uses swipe controls to move through a maze, collect points and avoid enemies.
 
 ## Hardware
 
